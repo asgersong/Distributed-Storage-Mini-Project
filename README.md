@@ -1,1 +1,1 @@
-# Distributed-Storage-Mini-Project
+# Distributed Storage Mini Project
