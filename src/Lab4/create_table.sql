@@ -4,6 +4,5 @@ CREATE TABLE `file` (
    `size` INTEGER,
    `content_type` TEXT,
    `created` DATETIME DEFAULT CURRENT_TIMESTAMP,
-   `part1_filenames` TEXT,
-   `part2_filenames` TEXT
+   `chunk_names` TEXT
 );

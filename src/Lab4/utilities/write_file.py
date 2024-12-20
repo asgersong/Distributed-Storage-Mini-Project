@@ -1,0 +1,27 @@
+from random_string import random_string
+
+def write_file(data, filename=None):
+    """
+    Write the given data to a local file with the given filename
+
+    :param data: A bytes object that stores the file contents
+    :param filename: The file name. If not given, a random string is generated
+    :return: The file name of the newly written file, or None if there was an error
+    """
+    if not filename:
+        # Generate random filename
+        filename = random_string(length=8)
+        # Add '.bin' extension
+        filename += ".bin"
+
+    try:
+        # Open filename for writing binary content ('wb')
+        # note: when a file is opened using the 'with' statment,
+        # it is closed automatically when the scope ends
+        with open("./" + filename, "wb") as f:
+            f.write(data)
+    except EnvironmentError as e:
+        print("Error writing file: {}".format(e))
+        return None
+
+    return filename
