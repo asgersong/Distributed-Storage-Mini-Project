@@ -8,21 +8,22 @@ import random
 import time
 from base64 import b64decode
 from logging import exception
-import zmq
 import io
+
+import zmq
 import messages_pb2
 
 from flask import Flask, make_response, request, send_file
 
 from utilities.database import get_db, close_db
-from utilities.random_string import random_string
+from utilities.file_utils import random_string
+from node_selection import get_node_selection_strategy
 # from utilities.write_file import write_file
+from config import N, NO_CHUNKS, K
 
-# Constants
-N = 4 # Number of storage nodes
-NO_CHUNKS = 4
-K = 4 # Number of copies of each chunk
 
+# init from config.py
+node_selector = get_node_selection_strategy()
 
 #initiate ZMQ sockets
 context = zmq.Context()
