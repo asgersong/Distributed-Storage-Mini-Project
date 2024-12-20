@@ -1,0 +1,12 @@
+copysets article: https://www.usenix.org/system/files/conference/atc13/atc13-cidon.pdf
+copysets: https://hackingdistributed.com/2014/02/14/chainsets/
+
+mincopysets: https://www.dcc.fc.up.pt/~ines/aulas/1314/SDM/papers/MinCopysets.pdf
+
+buddy node selection:
+- https://patentimages.storage.googleapis.com/69/0a/9a/4c7f0e2eea1ad7/US20090063796A1.pdf
+- https://docs.redhat.com/en/documentation/jboss_enterprise_application_platform_common_criteria_certification/5/html/jboss_cache_user_guide/clustering?utm_source=chatgpt.com#idm140119297629312
+
+
+comparision of replication strategies: https://www.researchgate.net/publication/261272316_Replication_in_Distributed_Storage_Systems_State_of_the_Art_Possible_Directions_and_Open_Issues
+
