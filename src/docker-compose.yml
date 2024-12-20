@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  lead_node:
+    build: ./lead_node
+    environment:
+      STORAGE_NODES: "storage_node1:5000,storage_node2:5000,storage_node3:5000,storage_node4:5000"
+    ports:
+      - "4000:4000"
+    depends_on:
+      - storage_node1
+      - storage_node2
+      - storage_node3
+      - storage_node4
+    networks:
+      - dnet
+
+  storage_node1:
+    build: ./storage_node
+    ports:
+      - "5001:5000"
+    networks:
+      - dnet
+
+  storage_node2:
+    build: ./storage_node
+    ports:
+      - "5002:5000"
+    networks:
+      - dnet
+
+  storage_node3:
+    build: ./storage_node
+    ports:
+      - "5003:5000"
+    networks:
+      - dnet
+
+  storage_node4:
+    build: ./storage_node
+    ports:
+      - "5004:5000"
+    networks:
+      - dnet
+
+networks:
+  dnet:
