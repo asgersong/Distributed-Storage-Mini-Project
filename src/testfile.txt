@@ -3,5 +3,6 @@ docker-compose up
 
 I en anden terminal kør:
 curl -X POST --data-binary @testfile.txt "http://localhost:4000/store"
+
 curl "http://localhost:4000/retrieve?file_id=file_xxxx" --output retrieved_file.txt  
 udfyld "xxxx" med file_id.    
