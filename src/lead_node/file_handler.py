@@ -1,9 +1,7 @@
 import random
 import threading
-import random
-import os
-import requests
 import math
+import requests
 
 from config import NO_FRAGMENTS, NODE_SELECTION_STRATEGY, NO_NODES, NO_REPLICAS
 from node_selection import RandomSelection, MinCopySetsSelection, BuddySelection
@@ -20,7 +18,11 @@ class FileHandler:
 
     def store_file(self, file_bytes):
         """"Store a file and return its file_id"""
+
+        # Generate a unique file_id not in file_metadata
         file_id = "file_" + str(random.randint(1000, 9999))
+        while file_id in file_metadata:
+            file_id = "file_" + str(random.randint(1000, 9999))
 
         # Split into fragments
         fragment_size = math.ceil(len(file_bytes) / NO_FRAGMENTS)
