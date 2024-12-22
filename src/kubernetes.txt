@@ -1,0 +1,26 @@
+START minikube
+minikube start
+
+
+FOR WINDOWS:
+& minikube -p minikube docker-env --shell powershell | Invoke-Expression
+
+BASH:
+eval $(minikube docker-env)
+
+CREATE DEPLOYMENTS AND SERVICES
+kubectl apply -f lead_node/lead-node-deployment.yml
+kubectl apply -f lead_node/lead-node-service.yml
+kubectl apply -f storage_node/storage-node-deployment.yml
+kubectl apply -f storage_node/storage-node-service.yml
+
+
+
+To see logs without opening dashboard:
+kubectl logs lead-node-deployment-65fc6d8fd8-sp2wk  (for the specific pod)
+
+
+
+
+
+

@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: storage-node
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: storage-node
+  template: 
+    metadata:
+      labels: 
+        app: storage-node
+    spec: 
+      containers:
+        - name: storage-node
+          image: therealnestor/ds:storage-node
+          imagePullPolicy: Always
+          ports: 
+            - containerPort: 5000
+
+          

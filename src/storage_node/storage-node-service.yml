@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: storage-nodes
+spec:
+  selector:
+    app: storage-node  # This will match the Pods with this label (route traffic here)
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000 # storage nodes are listening on this 
+
+      

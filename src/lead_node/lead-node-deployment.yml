@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: lead-node-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lead-node
+  template:
+    metadata:
+      labels:
+        app: lead-node
+    spec:
+      containers:
+      - name: lead-node # some container name
+        image: therealnestor/ds:lead-node
+        imagePullPolicy: Always # sufficient for now
+        env:
+          - name: STORAGE_NODES
+            value: "storage-nodes:5000" # this is the service name and port of the storage nodes
+        ports:
+          - containerPort: 4000 # lead node listens on this port
+
+
+      
