@@ -1,4 +1,5 @@
-from flask import Flask, request, jsonify
+import os
+from flask import Flask, request, jsonify, send_from_directory
 from file_handler import FileHandler
 
 app = Flask(__name__)
@@ -13,9 +14,8 @@ def index():
 def store_endpoint():
     file_bytes = request.get_data()
     print("Received file length from get_data():", len(file_bytes))
-    
+  
     file_id = file_handler.store_file(file_bytes)
-    # TODO: return http response
     return jsonify({"file_id": file_id})
 
 @app.route('/retrieve', methods=['GET'])
