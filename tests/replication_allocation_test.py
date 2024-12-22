@@ -7,7 +7,7 @@ import tqdm
 # Example configuration parameters
 NO_NODES = [3, 6, 12, 24]
 NO_REPLICAS = 3
-FILE_SIZES = [1e5, 1e6, 1e7]  # 100 KB, 1 MB, 10 MB, (100 MB)
+FILE_SIZES = [1e5, 1e6, 1e7, 1e8]  # 100 KB, 1 MB, 10 MB, (100 MB)
 NO_FILES = 100
 NODE_SELECTION_STRATEGY = "Buddy"
 
