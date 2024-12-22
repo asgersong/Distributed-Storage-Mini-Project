@@ -43,7 +43,7 @@ class FileHandler:
             for frag_idx, fragment in enumerate(fragments):
                 node = assigned_nodes[replica_idx][frag_idx]
                 print(
-                    f"Uploading fragment {frag_idx} of replica {replica_idx} to {node}, fragment length={len(fragment)}"
+                    f"Uploading replica {replica_idx} of fragment {frag_idx} to node {node}, fragment length={len(fragment)}"
                 )
                 t = threading.Thread(
                     target=self.__upload_fragment_to_node,
