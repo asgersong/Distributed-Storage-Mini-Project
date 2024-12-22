@@ -1,5 +1,4 @@
-import os
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify
 from file_handler import FileHandler
 
 app = Flask(__name__)
