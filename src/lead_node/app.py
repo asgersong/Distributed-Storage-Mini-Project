@@ -13,9 +13,8 @@ def index():
 def store_endpoint():
     file_bytes = request.get_data()
     print("Received file length from get_data():", len(file_bytes))
-    
+  
     file_id = file_handler.store_file(file_bytes)
-    # TODO: return http response
     return jsonify({"file_id": file_id})
 
 @app.route('/retrieve', methods=['GET'])
