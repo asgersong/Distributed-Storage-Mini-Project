@@ -77,6 +77,7 @@ class MinCopySetsSelection(NodeSelectionStrategy):
         self.copy_sets, self.available_nodes = self.initiate_replication_groups(
             no_copysets, self.no_replicas
         )
+        print("Copy sets:", self.copy_sets)
 
 
 class BuddySelection(NodeSelectionStrategy):
@@ -85,7 +86,6 @@ class BuddySelection(NodeSelectionStrategy):
     def __init__(self, no_nodes, no_fragments, no_replicas):
         super().__init__(no_nodes, no_fragments, no_replicas)
         self.buddies = None
-        self.available_nodes = None
         self.__initiate_buddies()
 
     def choose_nodes(self):
@@ -102,7 +102,7 @@ class BuddySelection(NodeSelectionStrategy):
     def __initiate_buddies(self):
         """Initiate the replication group for all nodes"""
         no_groups = math.floor(math.sqrt(self.no_nodes / self.no_replicas))
-        self.buddies, self.available_nodes = self.initiate_replication_groups(
+        self.buddies, _ = self.initiate_replication_groups(
             no_groups, self.no_nodes // no_groups
         )
         print("Buddies:", self.buddies)
