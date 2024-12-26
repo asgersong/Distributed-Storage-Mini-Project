@@ -3,9 +3,10 @@ kind: Service
 metadata:
   name: lead-node-service
 spec:
+  type: NodePort  # accessible from outside the cluster
   selector:
     app: lead-node
   ports:
     - port: 4000
       targetPort: 4000
-  type: NodePort  # accessible from outside the cluster
+      nodePort: 31000 # so I dont have to get a specific one with "kbuectl get svc -o wide" 
