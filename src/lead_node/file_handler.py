@@ -7,6 +7,31 @@ from config import NO_FRAGMENTS, NODE_SELECTION_STRATEGY, NO_NODES, NO_REPLICAS
 from node_selection import RandomSelection, MinCopySetsSelection, BuddySelection
 from node_selection import RANDOM_SELECTION, MIN_COPY_SETS_SELECTION, BUDDY_SELECTION
 
+
+from kubernetes import client, config
+
+
+# Configure access to the Kubernetes cluster
+config.load_incluster_config()  # Use this if running inside the cluster
+# config.load_kube_config()  # Use this for local testing with kubeconfig
+
+# Create an API client for CoreV1
+v1 = client.CoreV1Api()
+
+
+def get_storage_node_pods(namespace="default"):
+    """Get the names and IPs of storage-node pods."""
+    pod_list = v1.list_namespaced_pod(
+        namespace, label_selector="app=storage-node")
+    pods = []
+    for pod in pod_list.items:
+        if pod.status.phase == "Running":
+            pods.append({"name": pod.metadata.name, "ip": pod.status.pod_ip})
+    return pods
+
+STORAGE_NODES = get_storage_node_pods()
+
+
 # Global State (in-memory for demo)
 file_metadata = {}
 
@@ -105,7 +130,8 @@ class FileHandler:
 
     def __upload_fragment_to_node(self, node, file_id, frag_idx, fragment):
         try:
-            url = f"http://storage_node{node}:5000/upload_fragment?file_id={file_id}&frag_idx={frag_idx}"
+            node_ip = STORAGE_NODES[node-1]["ip"]
+            url = f"http://{node_ip}:5000/upload_fragment?file_id={file_id}&frag_idx={frag_idx}"
             r = requests.post(url, data=fragment)
             if r.status_code != 200:
                 print(
@@ -119,7 +145,8 @@ class FileHandler:
             print(f"Upload error for fragment {frag_idx} of {file_id} to {node}: {e}")
 
     def __download_fragment_from_node(self, node, file_id, frag_idx):
-        url = f"http://storage_node{node}:5000/get_fragment?file_id={file_id}&frag_idx={frag_idx}"
+        node_ip = STORAGE_NODES[node-1]["ip"]
+        url = f"http://{node_ip}:5000/get_fragment?file_id={file_id}&frag_idx={frag_idx}"
         try:
             r = requests.get(url)
             if r.status_code == 200:
