@@ -15,8 +15,8 @@ eval $(minikube docker-env)
 CREATE DEPLOYMENTS AND SERVICES
 kubectl apply -f lead_node/k8s_config/lead-node-deployment.yml
 kubectl apply -f lead_node/k8s_config/lead-node-service.yml
-kubectl apply -f lead_node/role.yaml
-kubectl apply -f lead_node/rolebinding.yaml
+kubectl apply -f k8s_config/role.yaml
+kubectl apply -f k8s_config/rolebinding.yaml
 kubectl apply -f storage_node/k8s_config/storage-node-deployment.yml
 kubectl apply -f storage_node/k8s_config/storage-node-service.yml
 
