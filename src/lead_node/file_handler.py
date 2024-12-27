@@ -7,7 +7,6 @@ from config import NO_FRAGMENTS, NODE_SELECTION_STRATEGY, NO_REPLICAS
 from node_selection import RandomSelection, MinCopySetsSelection, BuddySelection
 from node_selection import RANDOM_SELECTION, MIN_COPY_SETS_SELECTION, BUDDY_SELECTION
 
-import time
 from kubernetes import client, config
 
 
@@ -18,25 +17,6 @@ config.load_incluster_config()  # Use this if running inside the cluster
 # Create an API client for CoreV1
 v1 = client.CoreV1Api()
 
-
-def get_storage_node_pods(namespace="default"):
-    """Get the names and IPs of storage-node pods."""
-    pod_list = v1.list_namespaced_pod(
-        namespace, label_selector="app=storage-node")
-    pods = []
-    for pod in pod_list.items:
-        while pod.status.phase != "Running":
-            print(f"Waiting for pod {pod.metadata.name} to be Running")
-            pod = v1.read_namespaced_pod(pod.metadata.name, namespace)
-        time.sleep(1)
-        if pod.status.phase == "Running":
-            pods.append({"name": pod.metadata.name, "ip": pod.status.pod_ip})
-    return pods
-
-STORAGE_NODES = get_storage_node_pods()
-NO_NODES = len(STORAGE_NODES)
-
-
 # Global State (in-memory for demo) should be stored persistently in a real system
 file_metadata = {}
 
@@ -44,7 +24,14 @@ class FileHandler:
     """Handles file storage and retrieval"""
     def __init__(self):
         self.node_selector = None
-        self.__setup()
+        self.storage_nodes = []
+        self.__setup_node_strategy()
+        self.__pod_finder_thread = threading.Thread(target=self.__get_storage_node_pods, 
+                                                    daemon=True,
+                                                    kwargs={"period": 1})
+        self.__pod_thread_ticker = threading.Event()
+        self.__pod_finder_thread.start()
+        
 
     def store_file(self, file_bytes):
         """"Store a file and return its file_id"""
@@ -102,44 +89,44 @@ class FileHandler:
         fragments = [None for _ in range(NO_FRAGMENTS)]
         for frag_idx in range(NO_FRAGMENTS):
             fragment_found = False
-            for nodes_list in assigned_nodes:
-                for node in nodes_list:
-                    frag = self.__download_fragment_from_node(node, file_id, frag_idx)
-                    if frag:
-                        print(
-                            f"Retrieved fragment {frag_idx} from {node}, length={len(frag)}"
-                        )
-                        fragments[frag_idx] = frag
-                        fragment_found = True
-                        break
-                if fragment_found:
+            for nodes_list in assigned_nodes: # Check each replica for the fragment
+                node = nodes_list[frag_idx]
+                # TODO: Check that node is in storage_nodes
+                frag = self.__download_fragment_from_node(node, file_id, frag_idx)
+                if frag:
+                    print(
+                        f"Retrieved fragment {frag_idx} from {node}, length={len(frag)}"
+                    )
+                    fragments[frag_idx] = frag
+                    fragment_found = True
                     break
+                
             if not fragment_found:
                 print(f"Fragment {frag_idx} not found for file_id={file_id}")
-                return b""
+                return b""  # Return empty bytes if any fragment is missing
 
         # Check final file size after reassembly
         reassembled = b"".join(fragments)
         print(f"Reassembled file_id={file_id} with total length={len(reassembled)}")
         return reassembled
 
-    def __setup(self):
+    def __setup_node_strategy(self):
         if NODE_SELECTION_STRATEGY == RANDOM_SELECTION:
-            self.node_selector = RandomSelection(NO_NODES, NO_FRAGMENTS, NO_REPLICAS)
+            self.node_selector = RandomSelection(len(self.storage_nodes), NO_FRAGMENTS, NO_REPLICAS)
         elif NODE_SELECTION_STRATEGY == MIN_COPY_SETS_SELECTION:
             self.node_selector = MinCopySetsSelection(
-                NO_NODES, NO_FRAGMENTS, NO_REPLICAS
+                len(self.storage_nodes), NO_FRAGMENTS, NO_REPLICAS
             )
         elif NODE_SELECTION_STRATEGY == BUDDY_SELECTION:
-            self.node_selector = BuddySelection(NO_NODES, NO_FRAGMENTS, NO_REPLICAS)
+            self.node_selector = BuddySelection(len(self.storage_nodes), NO_FRAGMENTS, NO_REPLICAS)
         else:
             raise NotImplementedError(
                 f"Invalid node selection strategy: {NODE_SELECTION_STRATEGY}"
             )
-
+        
     def __upload_fragment_to_node(self, node, file_id, frag_idx, fragment):
         try:
-            node_ip = STORAGE_NODES[node-1]["ip"]
+            node_ip = self.storage_nodes[node-1]["ip"]
             url = f"http://{node_ip}:5000/upload_fragment?file_id={file_id}&frag_idx={frag_idx}"
             r = requests.post(url, data=fragment)
             if r.status_code != 200:
@@ -154,7 +141,7 @@ class FileHandler:
             print(f"Upload error for fragment {frag_idx} of {file_id} to {node}: {e}")
 
     def __download_fragment_from_node(self, node, file_id, frag_idx):
-        node_ip = STORAGE_NODES[node-1]["ip"]
+        node_ip = self.storage_nodes[node-1]["ip"]
         url = f"http://{node_ip}:5000/get_fragment?file_id={file_id}&frag_idx={frag_idx}"
         try:
             r = requests.get(url)
@@ -172,3 +159,20 @@ class FileHandler:
                 f"Download error for fragment {frag_idx} of {file_id} from {node}: {e}"
             )
         return None
+    
+    def __get_storage_node_pods(self, period=5, namespace="default"):
+        """Get the names and IPs of storage-node pods."""
+        while not self.__pod_thread_ticker.wait(period):
+            pod_list = v1.list_namespaced_pod(
+                namespace, label_selector="app=storage-node")
+            pods = []
+            for pod in pod_list.items:
+                while pod.status.phase != "Running":
+                    print(f"Waiting for pod {pod.metadata.name} to be Running")
+                    pod = v1.read_namespaced_pod(pod.metadata.name, namespace)
+                if pod.status.phase == "Running":
+                    pods.append({"name": pod.metadata.name, "ip": pod.status.pod_ip})
+            if len(pods) != len(self.storage_nodes):
+                print("Storage nodes updated:", pods)
+                self.storage_nodes = pods
+                self.__setup_node_strategy()
