@@ -3,7 +3,7 @@ import threading
 import math
 import requests
 
-from config import NO_FRAGMENTS, NODE_SELECTION_STRATEGY, NO_REPLICAS
+from config import NO_FRAGMENTS, NODE_SELECTION_STRATEGY, NO_REPLICAS, NODES_TO_KILL
 from node_selection import RandomSelection, MinCopySetsSelection, BuddySelection
 from node_selection import RANDOM_SELECTION, MIN_COPY_SETS_SELECTION, BUDDY_SELECTION
 
@@ -32,6 +32,7 @@ class FileHandler:
             target=self.__monitor_storage_nodes, daemon=True, kwargs={"period": 1}
         )
         self.__ticker = threading.Event()
+        self.__nodes_been_killed = False
         self.__node_monitor_thread.start()
 
     def store_file(self, file_bytes):
@@ -191,7 +192,10 @@ class FileHandler:
             pod = random.choice(self.storage_nodes)
             v1.delete_namespaced_pod(pod["name"], namespace)
             print(f"Killed storage node pod {pod['name']}")
+        self.__nodes_been_killed = True
 
     def __monitor_storage_nodes(self, period):
         while not self.__ticker.wait(period):
             self.__get_storage_node_pods()
+            if not self.__nodes_been_killed:
+                self.__kill_storage_nodes(NODES_TO_KILL)
