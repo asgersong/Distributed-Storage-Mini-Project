@@ -28,9 +28,9 @@ class FileHandler:
     def __init__(self):
         self.node_selector = None
         self.storage_nodes = []
-        self.__setup_node_strategy()
+        # self.__setup_node_strategy()
         self.__node_monitor_thread = threading.Thread(
-            target=self.__monitor_storage_nodes, daemon=True, kwargs={"period": 1}
+            target=self.__monitor_storage_nodes, daemon=True, kwargs={"period": 5}
         )
         self.__ticker = threading.Event()
         self.__nodes_been_killed = False
@@ -82,7 +82,7 @@ class FileHandler:
                 node = nodes_list[frag_idx]
                 # TODO: Check that node is in storage_nodes
                 frag = download_fragment_from_node(
-                    node, self.storage_nodes[node - 1]["ip"], file_id, frag_idx
+                    node, node['ip'], file_id, frag_idx
                 )
                 if frag:
                     print(
@@ -111,7 +111,7 @@ class FileHandler:
                 )
                 t = threading.Thread(
                     target=upload_fragment_to_node,
-                    args=(node, self.storage_nodes[node - 1]["ip"], file_id, frag_idx, fragment),
+                    args=(node, node['ip'] , file_id, frag_idx, fragment),
                 )
                 t.start()
                 threads.append(t)
@@ -121,7 +121,7 @@ class FileHandler:
     def __setup_node_strategy(self):
         if NODE_SELECTION_STRATEGY == RANDOM_SELECTION:
             self.node_selector = RandomSelection(
-                len(self.storage_nodes), NO_FRAGMENTS, NO_REPLICAS
+                self.storage_nodes, NO_FRAGMENTS, NO_REPLICAS
             )
         elif NODE_SELECTION_STRATEGY == MIN_COPY_SETS_SELECTION:
             self.node_selector = MinCopySetsSelection(
@@ -143,7 +143,10 @@ class FileHandler:
         for pod in pod_list.items:
             while pod.status.phase != "Running":
                 print(f"Waiting for pod {pod.metadata.name} to be Running")
-                pod = v1.read_namespaced_pod(pod.metadata.name, namespace)
+                try:                     
+                    pod = v1.read_namespaced_pod(pod.metadata.name, namespace)
+                except:
+                    pass
             if pod.status.phase == "Running":
                 pods.append({"name": pod.metadata.name, "ip": pod.status.pod_ip})
         if len(pods) != len(self.storage_nodes):
@@ -162,11 +165,54 @@ class FileHandler:
             print(f"Killed storage node pod {pod['name']}")
         self.__nodes_been_killed = True
 
+    # def __quantify_file_loss(self):
+    #     files_lost = 0
+
+    #     if (file_metadata != {}):
+    #         for file_id, replicas in file_metadata.items():
+    #             print(f'replicas: {replicas}')
+    #             set_fragments = set() # unique fragments for file_id
+    #             for replica in replicas:
+    #                 print(f'replica: {replica}')
+    #                 for fragment_node in replica:
+    #                     for node in self.storage_nodes:
+    #                         if fragment_node['name'] == node['name']:
+    #                             set_fragments.add(fragment_node)
+    #             if len(set_fragments) != NO_FRAGMENTS:
+    #                 files_lost += 1                       
+
+    #     print(f"Files lost: {files_lost}/{len(file_metadata)}")          
+
     def __quantify_file_loss(self):
-        pass
+        files_lost = 0
+
+        # Iterate over all files and their replica metadata
+        for file_id, replicas in file_metadata.items():
+            print(f"Checking file_id={file_id} with replicas: {replicas}")
+            
+            # Track the fragments successfully found across all replicas
+            fragments_found = set()
+
+            for replica in replicas:
+                for frag_idx, fragment_node in enumerate(replica):
+                    # Check if the fragment node exists in the current storage nodes
+                    if any(node["name"] == fragment_node["name"] for node in self.storage_nodes):
+                        fragments_found.add(frag_idx)
+
+            # If the number of found fragments is less than expected, the file is lost
+            if len(fragments_found) < NO_FRAGMENTS:
+                print(f"File {file_id} is lost (found {len(fragments_found)} of {NO_FRAGMENTS} fragments)")
+                files_lost += 1
+            else:
+                print(f"File {file_id} is intact (found all {NO_FRAGMENTS} fragments)")
+
+        total_files = len(file_metadata)
+        print(f"Files lost: {files_lost}/{total_files}")
+
 
     def __monitor_storage_nodes(self, period):
         while not self.__ticker.wait(period):
             self.__get_storage_node_pods()
-            if not self.__nodes_been_killed:
-                self.__kill_storage_nodes(NODES_TO_KILL)
+            # if not self.__nodes_been_killed and len(file_metadata) > 1:
+            #     self.__kill_storage_nodes(NODES_TO_KILL)
+            self.__quantify_file_loss()

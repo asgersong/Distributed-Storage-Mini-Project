@@ -9,8 +9,9 @@ BUDDY_SELECTION = "buddy"
 class NodeSelectionStrategy:
     """Parent class for node selection strategies"""
 
-    def __init__(self, no_nodes, no_fragments, no_replicas):
-        self.no_nodes = no_nodes
+    def __init__(self, nodes, no_fragments, no_replicas):
+        self.nodes = nodes 
+        self.no_nodes = len(nodes)
         self.no_fragments = no_fragments
         self.no_replicas = no_replicas
 
@@ -21,7 +22,7 @@ class NodeSelectionStrategy:
     def initiate_replication_groups(self, no_groups, group_size):
         """Initiate the replication group for all nodes"""
         replication_groups = []
-        available_nodes = list(range(1, self.no_nodes + 1))
+        available_nodes = self.nodes.copy()
         random.shuffle(available_nodes)
         for _ in range(no_groups):
             group = random.sample(available_nodes, group_size)
@@ -40,9 +41,7 @@ class RandomSelection(NodeSelectionStrategy):
     def choose_nodes(self):
         chosen = []
         for _ in range(self.no_replicas):
-            selected_nodes = random.sample(
-                range(1, self.no_nodes + 1), self.no_fragments
-            )
+            selected_nodes = random.sample(self.nodes, self.no_fragments)
             chosen.append(selected_nodes)
         return chosen
 
@@ -50,8 +49,8 @@ class RandomSelection(NodeSelectionStrategy):
 class MinCopySetsSelection(NodeSelectionStrategy):
     """Selects nodes using the minimum copy sets algorithm"""
 
-    def __init__(self, no_nodes, no_fragments, no_replicas):
-        super().__init__(no_nodes, no_fragments, no_replicas)
+    def __init__(self, nodes, no_fragments, no_replicas):
+        super().__init__(nodes, no_fragments, no_replicas)
         self.copy_sets = None
         self.available_nodes = None
         self.__initiate_copy_sets()
@@ -83,8 +82,8 @@ class MinCopySetsSelection(NodeSelectionStrategy):
 class BuddySelection(NodeSelectionStrategy):
     """Selects K nodes using the buddy system"""
 
-    def __init__(self, no_nodes, no_fragments, no_replicas):
-        super().__init__(no_nodes, no_fragments, no_replicas)
+    def __init__(self, nodes, no_fragments, no_replicas):
+        super().__init__(nodes, no_fragments, no_replicas)
         self.buddies = None
         self.__initiate_buddies()
 
