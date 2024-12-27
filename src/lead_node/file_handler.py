@@ -1,6 +1,7 @@
 import random
 import threading
 import math
+import time
 
 from config import NO_FRAGMENTS, NODE_SELECTION_STRATEGY, NO_REPLICAS, NODES_TO_KILL
 from node_selection import RandomSelection, MinCopySetsSelection, BuddySelection
@@ -136,17 +137,24 @@ class FileHandler:
                 f"Invalid node selection strategy: {NODE_SELECTION_STRATEGY}"
             )
 
-    def __get_storage_node_pods(self, namespace="default"):
+    def __get_storage_node_pods(self, namespace="default", timeout=5, poll_interval=.5):
         """Get the names and IPs of storage-node pods."""
         pod_list = v1.list_namespaced_pod(namespace, label_selector="app=storage-node")
         pods = []
+        start_time = time.time()
         for pod in pod_list.items:
             while pod.status.phase != "Running":
+                elapsed_time = time.time() - start_time
+                if elapsed_time > timeout:
+                    print(f"Timeout waiting for pod {pod.metadata.name} to be Running")
+                    break
                 print(f"Waiting for pod {pod.metadata.name} to be Running")
-                try:                     
+                try:    
+                    time.sleep(poll_interval)                 
                     pod = v1.read_namespaced_pod(pod.metadata.name, namespace)
-                except:
-                    pass
+                except Exception as e:
+                    print(f"Error getting pod {pod.metadata.name}: {e}")
+                    break
             if pod.status.phase == "Running":
                 pods.append({"name": pod.metadata.name, "ip": pod.status.pod_ip})
         if len(pods) != len(self.storage_nodes):
@@ -159,29 +167,11 @@ class FileHandler:
         if s >= len(self.storage_nodes):
             print("Cannot kill all or more than number of storage nodes")
             return
-        for _ in range(s):
-            pod = random.choice(self.storage_nodes)
+        pods_to_delete = random.sample(self.storage_nodes, k=s)
+        for pod in pods_to_delete:
             v1.delete_namespaced_pod(pod["name"], namespace)
             print(f"Killed storage node pod {pod['name']}")
         self.__nodes_been_killed = True
-
-    # def __quantify_file_loss(self):
-    #     files_lost = 0
-
-    #     if (file_metadata != {}):
-    #         for file_id, replicas in file_metadata.items():
-    #             print(f'replicas: {replicas}')
-    #             set_fragments = set() # unique fragments for file_id
-    #             for replica in replicas:
-    #                 print(f'replica: {replica}')
-    #                 for fragment_node in replica:
-    #                     for node in self.storage_nodes:
-    #                         if fragment_node['name'] == node['name']:
-    #                             set_fragments.add(fragment_node)
-    #             if len(set_fragments) != NO_FRAGMENTS:
-    #                 files_lost += 1                       
-
-    #     print(f"Files lost: {files_lost}/{len(file_metadata)}")          
 
     def __quantify_file_loss(self):
         files_lost = 0
@@ -213,6 +203,6 @@ class FileHandler:
     def __monitor_storage_nodes(self, period):
         while not self.__ticker.wait(period):
             self.__get_storage_node_pods()
-            # if not self.__nodes_been_killed and len(file_metadata) > 1:
-            #     self.__kill_storage_nodes(NODES_TO_KILL)
+            if not self.__nodes_been_killed and len(file_metadata) > 5: # TODO: change the way we test this
+                self.__kill_storage_nodes(NODES_TO_KILL)
             self.__quantify_file_loss()
