@@ -20,21 +20,22 @@ v1 = client.CoreV1Api()
 # Global State (in-memory for demo) should be stored persistently in a real system
 file_metadata = {}
 
+
 class FileHandler:
     """Handles file storage and retrieval"""
+
     def __init__(self):
         self.node_selector = None
         self.storage_nodes = []
         self.__setup_node_strategy()
-        self.__pod_finder_thread = threading.Thread(target=self.__get_storage_node_pods, 
-                                                    daemon=True,
-                                                    kwargs={"period": 1})
-        self.__pod_thread_ticker = threading.Event()
-        self.__pod_finder_thread.start()
-        
+        self.__node_monitor_thread = threading.Thread(
+            target=self.__monitor_storage_nodes, daemon=True, kwargs={"period": 1}
+        )
+        self.__ticker = threading.Event()
+        self.__node_monitor_thread.start()
 
     def store_file(self, file_bytes):
-        """"Store a file and return its file_id"""
+        """ "Store a file and return its file_id"""
 
         # Generate a unique file_id not in file_metadata
         file_id = "file_" + str(random.randint(1000, 9999))
@@ -89,7 +90,7 @@ class FileHandler:
         fragments = [None for _ in range(NO_FRAGMENTS)]
         for frag_idx in range(NO_FRAGMENTS):
             fragment_found = False
-            for nodes_list in assigned_nodes: # Check each replica for the fragment
+            for nodes_list in assigned_nodes:  # Check each replica for the fragment
                 node = nodes_list[frag_idx]
                 # TODO: Check that node is in storage_nodes
                 frag = self.__download_fragment_from_node(node, file_id, frag_idx)
@@ -100,7 +101,7 @@ class FileHandler:
                     fragments[frag_idx] = frag
                     fragment_found = True
                     break
-                
+
             if not fragment_found:
                 print(f"Fragment {frag_idx} not found for file_id={file_id}")
                 return b""  # Return empty bytes if any fragment is missing
@@ -112,21 +113,25 @@ class FileHandler:
 
     def __setup_node_strategy(self):
         if NODE_SELECTION_STRATEGY == RANDOM_SELECTION:
-            self.node_selector = RandomSelection(len(self.storage_nodes), NO_FRAGMENTS, NO_REPLICAS)
+            self.node_selector = RandomSelection(
+                len(self.storage_nodes), NO_FRAGMENTS, NO_REPLICAS
+            )
         elif NODE_SELECTION_STRATEGY == MIN_COPY_SETS_SELECTION:
             self.node_selector = MinCopySetsSelection(
                 len(self.storage_nodes), NO_FRAGMENTS, NO_REPLICAS
             )
         elif NODE_SELECTION_STRATEGY == BUDDY_SELECTION:
-            self.node_selector = BuddySelection(len(self.storage_nodes), NO_FRAGMENTS, NO_REPLICAS)
+            self.node_selector = BuddySelection(
+                len(self.storage_nodes), NO_FRAGMENTS, NO_REPLICAS
+            )
         else:
             raise NotImplementedError(
                 f"Invalid node selection strategy: {NODE_SELECTION_STRATEGY}"
             )
-        
+
     def __upload_fragment_to_node(self, node, file_id, frag_idx, fragment):
         try:
-            node_ip = self.storage_nodes[node-1]["ip"]
+            node_ip = self.storage_nodes[node - 1]["ip"]
             url = f"http://{node_ip}:5000/upload_fragment?file_id={file_id}&frag_idx={frag_idx}"
             r = requests.post(url, data=fragment)
             if r.status_code != 200:
@@ -141,8 +146,10 @@ class FileHandler:
             print(f"Upload error for fragment {frag_idx} of {file_id} to {node}: {e}")
 
     def __download_fragment_from_node(self, node, file_id, frag_idx):
-        node_ip = self.storage_nodes[node-1]["ip"]
-        url = f"http://{node_ip}:5000/get_fragment?file_id={file_id}&frag_idx={frag_idx}"
+        node_ip = self.storage_nodes[node - 1]["ip"]
+        url = (
+            f"http://{node_ip}:5000/get_fragment?file_id={file_id}&frag_idx={frag_idx}"
+        )
         try:
             r = requests.get(url)
             if r.status_code == 200:
@@ -159,20 +166,32 @@ class FileHandler:
                 f"Download error for fragment {frag_idx} of {file_id} from {node}: {e}"
             )
         return None
-    
-    def __get_storage_node_pods(self, period=5, namespace="default"):
+
+    def __get_storage_node_pods(self, namespace="default"):
         """Get the names and IPs of storage-node pods."""
-        while not self.__pod_thread_ticker.wait(period):
-            pod_list = v1.list_namespaced_pod(
-                namespace, label_selector="app=storage-node")
-            pods = []
-            for pod in pod_list.items:
-                while pod.status.phase != "Running":
-                    print(f"Waiting for pod {pod.metadata.name} to be Running")
-                    pod = v1.read_namespaced_pod(pod.metadata.name, namespace)
-                if pod.status.phase == "Running":
-                    pods.append({"name": pod.metadata.name, "ip": pod.status.pod_ip})
-            if len(pods) != len(self.storage_nodes):
-                print("Storage nodes updated:", pods)
-                self.storage_nodes = pods
-                self.__setup_node_strategy()
+        pod_list = v1.list_namespaced_pod(namespace, label_selector="app=storage-node")
+        pods = []
+        for pod in pod_list.items:
+            while pod.status.phase != "Running":
+                print(f"Waiting for pod {pod.metadata.name} to be Running")
+                pod = v1.read_namespaced_pod(pod.metadata.name, namespace)
+            if pod.status.phase == "Running":
+                pods.append({"name": pod.metadata.name, "ip": pod.status.pod_ip})
+        if len(pods) != len(self.storage_nodes):
+            print("Storage nodes updated:", pods)
+            self.storage_nodes = pods
+            self.__setup_node_strategy()
+
+    def __kill_storage_nodes(self, s, namespace="default"):
+        """kill s random storage node pods"""
+        if s >= len(self.storage_nodes):
+            print("Cannot kill all or more than number of storage nodes")
+            return
+        for _ in range(s):
+            pod = random.choice(self.storage_nodes)
+            v1.delete_namespaced_pod(pod["name"], namespace)
+            print(f"Killed storage node pod {pod['name']}")
+
+    def __monitor_storage_nodes(self, period):
+        while not self.__ticker.wait(period):
+            self.__get_storage_node_pods()
