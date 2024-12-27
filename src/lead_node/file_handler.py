@@ -62,27 +62,7 @@ class FileHandler:
         print(f"Assigned nodes for {file_id}:", assigned_nodes)
 
         # Upload fragments to nodes
-        threads = []
-        for replica_idx in range(NO_REPLICAS):
-            for frag_idx, fragment in enumerate(fragments):
-                node = assigned_nodes[replica_idx][frag_idx]
-                print(
-                    f"Uploading replica {replica_idx} of fragment {frag_idx} to node {node}, fragment length={len(fragment)}"
-                )
-                t = threading.Thread(
-                    target=upload_fragment_to_node,
-                    args=(
-                        node,
-                        self.storage_nodes[node - 1]["ip"],
-                        file_id,
-                        frag_idx,
-                        fragment,
-                    ),
-                )
-                t.start()
-                threads.append(t)
-        for t in threads:
-            t.join()
+        self.__upload_fragments(file_id, fragments, assigned_nodes)
 
         file_metadata[file_id] = assigned_nodes
         return file_id
@@ -120,6 +100,23 @@ class FileHandler:
         reassembled = b"".join(fragments)
         print(f"Reassembled file_id={file_id} with total length={len(reassembled)}")
         return reassembled
+    
+    def __upload_fragments(self, file_id, fragments, assigned_nodes):
+        threads = []
+        for replica_idx in range(NO_REPLICAS):
+            for frag_idx, fragment in enumerate(fragments):
+                node = assigned_nodes[replica_idx][frag_idx]
+                print(
+                    f"Uploading replica {replica_idx} of fragment {frag_idx} to node {node}, fragment length={len(fragment)}"
+                )
+                t = threading.Thread(
+                    target=upload_fragment_to_node,
+                    args=(node, self.storage_nodes[node - 1]["ip"], file_id, frag_idx, fragment),
+                )
+                t.start()
+                threads.append(t)
+        for t in threads:
+            t.join()
 
     def __setup_node_strategy(self):
         if NODE_SELECTION_STRATEGY == RANDOM_SELECTION:
