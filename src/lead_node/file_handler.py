@@ -3,11 +3,11 @@ import threading
 import math
 import requests
 
-from config import NO_FRAGMENTS, NODE_SELECTION_STRATEGY, NO_NODES, NO_REPLICAS
+from config import NO_FRAGMENTS, NODE_SELECTION_STRATEGY, NO_REPLICAS
 from node_selection import RandomSelection, MinCopySetsSelection, BuddySelection
 from node_selection import RANDOM_SELECTION, MIN_COPY_SETS_SELECTION, BUDDY_SELECTION
 
-
+import time
 from kubernetes import client, config
 
 
@@ -25,11 +25,16 @@ def get_storage_node_pods(namespace="default"):
         namespace, label_selector="app=storage-node")
     pods = []
     for pod in pod_list.items:
+        while pod.status.phase != "Running":
+            print(f"Waiting for pod {pod.metadata.name} to be Running")
+            pod = v1.read_namespaced_pod(pod.metadata.name, namespace)
+        time.sleep(1)
         if pod.status.phase == "Running":
             pods.append({"name": pod.metadata.name, "ip": pod.status.pod_ip})
     return pods
 
 STORAGE_NODES = get_storage_node_pods()
+NO_NODES = len(STORAGE_NODES)
 
 
 # Global State (in-memory for demo)

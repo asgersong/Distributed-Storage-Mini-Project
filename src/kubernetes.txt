@@ -1,6 +1,9 @@
+##############################
 START minikube
 minikube start
 
+####################
+Make sure to use minikube docker env
 
 FOR WINDOWS:
 & minikube -p minikube docker-env --shell powershell | Invoke-Expression
@@ -8,6 +11,7 @@ FOR WINDOWS:
 BASH:
 eval $(minikube docker-env)
 
+#######################################
 CREATE DEPLOYMENTS AND SERVICES
 kubectl apply -f lead_node/lead-node-deployment.yml
 kubectl apply -f lead_node/lead-node-service.yml
@@ -16,34 +20,56 @@ kubectl apply -f lead_node/rolebinding.yaml
 kubectl apply -f storage_node/storage-node-deployment.yml
 kubectl apply -f storage_node/storage-node-service.yml
 
+
+############################################
 ACCESS A PARTICULAR PODS SHELL:
 
 kubectl exec -it <pod-name> -- /bin/sh
 
+############################################
 To see logs without opening dashboard:
 kubectl logs lead-node-deployment-65fc6d8fd8-sp2wk  (for the specific pod)
 
+
+##################################################
 GET THE NODE IP:
 kubectl get nodes -o wide (when not using minikube)
 minikube ip  (when using minikube)
 
 
 
-########## 
-It seems with Minikube you need to either 
+################################################## 
+To externally access a node's endpoint, you need to either:
 
 1)
-SSH into minikube and then curl the service (e.g. http://<minikube ip>:<port / 31000>)
+SSH into minikube 
+    minikube ssh 
+and then curl the service (e.g. http://<minikube ip>:<port / 31000>)
+    curl http://192.168.49.2:31000
 
 2)
 Start a service explicitly with
-minikube service lead-node-service (will ouptut the ip and port )
+    minikube service lead-node-service 
+
+(will ouptut the ip and port )
 
 3)
 Do explicit port forwarding
 
-kubectl port-forward svc/lead-node-service 4000:4000
+    kubectl port-forward svc/lead-node-service 4000:4000
 
 and then curl (e.g. http://127.0.0.1:4000)
 
 
+
+
+################################################## 
+To manually update a docker image, first rebuild it by navigating to the particular folder and write
+
+    docker build -t therealnestor/ds:<node-type>
+
+For the lead node substitute <node-type> with "lead-node" and for the storage node use "storage-node"
+
+Then push the images with 
+
+    docker push therealnestor/ds:<node-type>
