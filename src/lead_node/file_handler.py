@@ -165,6 +165,9 @@ class FileHandler:
             print(f"Killed storage node pod {pod['name']}")
         self.__nodes_been_killed = True
 
+    def __quantify_file_loss(self):
+        pass
+
     def __monitor_storage_nodes(self, period):
         while not self.__ticker.wait(period):
             self.__get_storage_node_pods()
