@@ -37,7 +37,7 @@ STORAGE_NODES = get_storage_node_pods()
 NO_NODES = len(STORAGE_NODES)
 
 
-# Global State (in-memory for demo)
+# Global State (in-memory for demo) should be stored persistently in a real system
 file_metadata = {}
 
 class FileHandler:
@@ -55,11 +55,15 @@ class FileHandler:
             file_id = "file_" + str(random.randint(1000, 9999))
 
         # Split into fragments
-        fragment_size = math.ceil(len(file_bytes) / NO_FRAGMENTS)
-        fragments = [
-            file_bytes[i : i + fragment_size]
-            for i in range(0, len(file_bytes), fragment_size)
-        ]
+        base_fragment_size = math.floor(len(file_bytes) / NO_FRAGMENTS)
+        remainder = len(file_bytes) % NO_FRAGMENTS
+        fragments = []
+        start = 0
+        for i in range(NO_FRAGMENTS):
+            end = start + base_fragment_size + (1 if i < remainder else 0)
+            fragments.append(file_bytes[start:end])
+            start = end
+
         print(f"Storing file_id={file_id}, total size={len(file_bytes)} bytes")
         print("Fragments sizes:", [len(f) for f in fragments])
 

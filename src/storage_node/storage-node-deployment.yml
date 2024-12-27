@@ -3,7 +3,7 @@ kind: Deployment
 metadata: 
   name: storage-node
 spec:
-  replicas: 4
+  replicas: 16
   selector:
     matchLabels:
       app: storage-node
