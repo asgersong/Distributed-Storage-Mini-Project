@@ -1,11 +1,12 @@
 import random
 import threading
 import math
-import requests
 
 from config import NO_FRAGMENTS, NODE_SELECTION_STRATEGY, NO_REPLICAS, NODES_TO_KILL
 from node_selection import RandomSelection, MinCopySetsSelection, BuddySelection
 from node_selection import RANDOM_SELECTION, MIN_COPY_SETS_SELECTION, BUDDY_SELECTION
+
+from storage_node_client import upload_fragment_to_node, download_fragment_from_node
 
 from kubernetes import client, config
 
@@ -69,8 +70,14 @@ class FileHandler:
                     f"Uploading replica {replica_idx} of fragment {frag_idx} to node {node}, fragment length={len(fragment)}"
                 )
                 t = threading.Thread(
-                    target=self.__upload_fragment_to_node,
-                    args=(node, file_id, frag_idx, fragment),
+                    target=upload_fragment_to_node,
+                    args=(
+                        node,
+                        self.storage_nodes[node - 1]["ip"],
+                        file_id,
+                        frag_idx,
+                        fragment,
+                    ),
                 )
                 t.start()
                 threads.append(t)
@@ -94,7 +101,9 @@ class FileHandler:
             for nodes_list in assigned_nodes:  # Check each replica for the fragment
                 node = nodes_list[frag_idx]
                 # TODO: Check that node is in storage_nodes
-                frag = self.__download_fragment_from_node(node, file_id, frag_idx)
+                frag = download_fragment_from_node(
+                    node, self.storage_nodes[node - 1]["ip"], file_id, frag_idx
+                )
                 if frag:
                     print(
                         f"Retrieved fragment {frag_idx} from {node}, length={len(frag)}"
@@ -129,44 +138,6 @@ class FileHandler:
             raise NotImplementedError(
                 f"Invalid node selection strategy: {NODE_SELECTION_STRATEGY}"
             )
-
-    def __upload_fragment_to_node(self, node, file_id, frag_idx, fragment):
-        try:
-            node_ip = self.storage_nodes[node - 1]["ip"]
-            url = f"http://{node_ip}:5000/upload_fragment?file_id={file_id}&frag_idx={frag_idx}"
-            r = requests.post(url, data=fragment)
-            if r.status_code != 200:
-                print(
-                    f"Failed to upload fragment {frag_idx} of {file_id} to {node}, status code={r.status_code}"
-                )
-            else:
-                print(
-                    f"Successfully uploaded fragment {frag_idx} of {file_id} to {node}"
-                )
-        except Exception as e:
-            print(f"Upload error for fragment {frag_idx} of {file_id} to {node}: {e}")
-
-    def __download_fragment_from_node(self, node, file_id, frag_idx):
-        node_ip = self.storage_nodes[node - 1]["ip"]
-        url = (
-            f"http://{node_ip}:5000/get_fragment?file_id={file_id}&frag_idx={frag_idx}"
-        )
-        try:
-            r = requests.get(url)
-            if r.status_code == 200:
-                print(
-                    f"Downloaded fragment {frag_idx} of {file_id} from {node}, size={len(r.content)}"
-                )
-                return r.content
-            else:
-                print(
-                    f"Fragment {frag_idx} of {file_id} not found on {node}, status code={r.status_code}"
-                )
-        except Exception as e:
-            print(
-                f"Download error for fragment {frag_idx} of {file_id} from {node}: {e}"
-            )
-        return None
 
     def __get_storage_node_pods(self, namespace="default"):
         """Get the names and IPs of storage-node pods."""
