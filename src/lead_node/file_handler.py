@@ -114,7 +114,7 @@ class FileHandler:
             }
 
     def __upload_fragments(self, file_id, fragments, assigned_nodes):
-        threads = []
+        threads = [] # Threads makes sense since we dont have to wait for one fragment to be uploaded to start the next one
         for replica_idx in range(NO_REPLICAS):
             for frag_idx, fragment in enumerate(fragments):
                 node = assigned_nodes[replica_idx][frag_idx]
@@ -163,13 +163,14 @@ class FileHandler:
                     break
                 print(f"Waiting for pod {pod.metadata.name} to be Running")
                 try:
-                    time.sleep(poll_interval)
                     pod = v1.read_namespaced_pod(pod.metadata.name, namespace)
                 except Exception as e:
                     print(f"Error getting pod {pod.metadata.name}: {e}")
                     break
             if pod.status.phase == "Running":
                 pods.append({"name": pod.metadata.name, "ip": pod.status.pod_ip})
+            else: # TODO: not working needs to remove faster
+                pods.remove({"name": pod.metadata.name, "ip": pod.status.pod_ip}) # not working
         if len(pods) != len(self.storage_nodes):
             print("Storage nodes updated:", pods)
             self.storage_nodes = pods
@@ -188,8 +189,35 @@ class FileHandler:
             print(f"Killed storage node pod {pod['name']}")
             killed_nodes.append(pod)
         return killed_nodes
+    
+    def set_replicas(self, replicas):
+        global NO_REPLICAS
+        NO_REPLICAS = replicas
+        try:
+            self.__setup_node_strategy()
+            print(f"Changed number of replicas to {replicas}")
+            return {"message": f"Changed number of replicas to {replicas}"}
+        except Exception as e:
+            print(f"Failed to change number of replicas to {replicas}: {e}")
+            return {
+                "message": f"Failed to change number of replicas to {replicas}: {e}"
+            }
+            
+    def set_fragments(self, fragments):
+        global NO_FRAGMENTS
+        NO_FRAGMENTS = fragments
+        try:
+            self.__setup_node_strategy()
+            print(f"Changed number of fragments to {fragments}")
+            return {"message": f"Changed number of fragments to {fragments}"}
+        except Exception as e:
+            print(f"Failed to change number of fragments to {fragments}: {e}")
+            return {
+                "message": f"Failed to change number of fragments to {fragments}: {e}"
+            }
 
     def quantify_file_loss(self):
+        self.__get_storage_node_pods()
         files_lost = 0
 
         # Iterate over all files and their replica metadata
@@ -219,9 +247,8 @@ class FileHandler:
 
         total_files = len(file_metadata)
         print(f"Files lost: {files_lost}/{total_files}")
-        return {"files_lost": files_lost, "total_files": total_files}
+        return {"files_lost": files_lost, "total_files": total_files, "node_count": len(self.storage_nodes)}
 
     def __monitor_storage_nodes(self, period):
         while not self.__ticker.wait(period):
             self.__get_storage_node_pods()
-            # self.quantify_file_loss()

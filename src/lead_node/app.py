@@ -45,5 +45,17 @@ def change_replication_strategy_endpoint():
     reply = file_handler.change_replication_strategy(strategy)
     return jsonify(reply)
 
+@app.route("/set_replicas", methods=["POST"])
+def set_replicas_endpoint():
+    replicas = int(request.get_data())
+    reply = file_handler.set_replicas(replicas)
+    return jsonify(reply)
+
+@app.route("/set_fragments", methods=["POST"])
+def set_fragments_endpoint():
+    fragments = int(request.get_data())
+    reply = file_handler.set_fragments(fragments)
+    return jsonify(reply)
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=4000)
