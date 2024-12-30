@@ -1,41 +1,21 @@
-import time
 import requests
-import numpy as np
 import matplotlib.pyplot as plt
 import tqdm
+import json
+
+from shared_utils import generate_file, download_file, store_file, URL
+import os
+
+RANDOM_SELECTION = "random"
+MIN_COPY_SETS_SELECTION = "min_copy_sets"
+BUDDY_SELECTION = "buddy"
 
 # Example configuration parameters
-NO_NODES = [3, 6, 12, 24]
+NO_NODES = 3  # 3, 6, 12, 24
 NO_REPLICAS = 3
 FILE_SIZES = [1e5, 1e6, 1e7, 1e8]  # 100 KB, 1 MB, 10 MB, (100 MB)
 NO_FILES = 100
-NODE_SELECTION_STRATEGY = "Buddy"
-
-def send_store_request(file_bytes):
-    """Send store request to the lead node"""
-    response = requests.post("http://localhost:4000/store", data=file_bytes)
-    return response.json()["file_id"]
-
-# Mock storage and download functions
-def store_file(file_bytes):
-    """Store file and generate redundancy"""
-    start_time = time.time()
-    file_id = send_store_request(file_bytes)
-    redundancy_time = time.time() - start_time
-    return redundancy_time, file_id
-
-
-def download_file(file_id):
-    """Download file"""
-    start_time = time.time()
-    response = requests.get(f"http://localhost:4000/retrieve?file_id={file_id}")
-    download_time = time.time() - start_time
-    return download_time
-
-
-def generate_file(size):
-    """Generate a file with the given size in bytes"""
-    return np.random.bytes(size)
+NODE_SELECTION_STRATEGIES = [BUDDY_SELECTION, MIN_COPY_SETS_SELECTION, RANDOM_SELECTION]
 
 
 def run_tests_for_file_size(file_size):
@@ -78,47 +58,44 @@ def generate_histogram_and_summary(times, label, title, fig_number):
     return avg_time, median_time
 
 
+def change_replication_strategy(node_selection_strategy):
+    """Change the replication strategy to the given strategy"""
+    res = requests.post(
+        f"{URL}/change_replication_strategy", data=node_selection_strategy
+    )
+    print(f"Response: {res.text}")
+
+
 def perform_tests():
     """Perform tests for different file sizes and return results"""
     results = {}
 
-    for file_size in tqdm.tqdm(FILE_SIZES, desc=f"Testing different file sizes"):
-        print(f"\n\nTesting for file size: {file_size / 1000} KB")
-        store_times, download_times = run_tests_for_file_size(file_size)
+    for node_selection_strategy in tqdm.tqdm(
+        NODE_SELECTION_STRATEGIES, desc="Testing different node selection strategies"
+    ):
+        print(f"\n\nTesting for node selection strategy: {node_selection_strategy}")
+        change_replication_strategy(node_selection_strategy)
 
-        avg_store_time, median_store_time = generate_histogram_and_summary(
-            store_times,
-            f"[{int(file_size/1000)}KB]",
-            title="Store Operation",
-            fig_number=1,
-        )
-        avg_download_time, median_download_time = generate_histogram_and_summary(
-            download_times,
-            f"[{int(file_size/1000)}KB]",
-            title="Retrieve Operation",
-            fig_number=2,
-        )
+        for file_size in tqdm.tqdm(FILE_SIZES, desc=f"Testing different file sizes"):
+            print(f"\n\nTesting for file size: {file_size / 1000} KB")
+            store_times, download_times = run_tests_for_file_size(file_size)
 
-        results[file_size] = {
-            "store_times": store_times,
-            "download_times": download_times,
-            "avg_store_time": avg_store_time,
-            "median_store_time": median_store_time,
-            "avg_download_time": avg_download_time,
-            "median_download_time": median_download_time,
-        }
+            results[(node_selection_strategy, file_size)] = {
+                "store_times": store_times,
+                "download_times": download_times,
+            }
 
-    plt.show()
     return results
 
 
 if __name__ == "__main__":
     results = perform_tests()
-
-    # Print results summary
-    for file_size, result in results.items():
-        print(f"\nFile size: {file_size / 1000} KB")
-        print(f"\tAverage store time: {result['avg_store_time']:.4f}s")
-        print(f"\tMedian store time: {result['median_store_time']:.4f}s")
-        print(f"\tAverage download time: {result['avg_download_time']:.4f}s")
-        print(f"\tMedian download time: {result['median_download_time']:.4f}s")
+    os.makedirs("tests/out", exist_ok=True)
+    # Convert tuple keys to strings
+    results_str_keys = {str(k): v for k, v in results.items()}
+    with open(
+        f"tests/out/{NO_NODES}_nodes_replication_allocation_test_results.json",
+        "w",
+        encoding="utf-8",
+    ) as f:
+        json.dump(results_str_keys, f)

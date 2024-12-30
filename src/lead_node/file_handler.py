@@ -169,7 +169,7 @@ class FileHandler:
                     break
             if pod.status.phase == "Running" and not pod.metadata.deletion_timestamp:
                 pods.append({"name": pod.metadata.name, "ip": pod.status.pod_ip})
-        if len(pods) != len(self.storage_nodes):
+        if pods != self.storage_nodes:
             print("Storage nodes updated:", pods)
             self.storage_nodes = pods
             self.__setup_node_strategy()

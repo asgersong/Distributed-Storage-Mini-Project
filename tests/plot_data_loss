@@ -1,0 +1,9 @@
+import matplotlib.pyplot as plt
+import json
+
+with open('tests/out/results_nodes_{N}.json') as f:
+    data = json.load(f)
+
+    for strategy, res in data.items():
+        x, y = zip(*res)
+        print(strategy, x, y)
