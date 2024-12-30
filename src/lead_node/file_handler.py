@@ -167,10 +167,8 @@ class FileHandler:
                 except Exception as e:
                     print(f"Error getting pod {pod.metadata.name}: {e}")
                     break
-            if pod.status.phase == "Running":
+            if pod.status.phase == "Running" and not pod.metadata.deletion_timestamp:
                 pods.append({"name": pod.metadata.name, "ip": pod.status.pod_ip})
-            else: # TODO: not working needs to remove faster
-                pods.remove({"name": pod.metadata.name, "ip": pod.status.pod_ip}) # not working
         if len(pods) != len(self.storage_nodes):
             print("Storage nodes updated:", pods)
             self.storage_nodes = pods
@@ -248,6 +246,11 @@ class FileHandler:
         total_files = len(file_metadata)
         print(f"Files lost: {files_lost}/{total_files}")
         return {"files_lost": files_lost, "total_files": total_files, "node_count": len(self.storage_nodes)}
+    
+    def reset_metadata(self):
+        global file_metadata
+        file_metadata = {}
+        return {"message": "Metadata reset successfully"}
 
     def __monitor_storage_nodes(self, period):
         while not self.__ticker.wait(period):

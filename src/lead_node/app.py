@@ -57,5 +57,10 @@ def set_fragments_endpoint():
     reply = file_handler.set_fragments(fragments)
     return jsonify(reply)
 
+@app.route("/reset_metadata", methods=["POST"])
+def reset_metadata_endpoint():
+    reply = file_handler.reset_metadata()
+    return jsonify(reply)
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=4000)
