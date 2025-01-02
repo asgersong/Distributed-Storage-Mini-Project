@@ -41,7 +41,7 @@ class RandomSelection(NodeSelectionStrategy):
     def choose_nodes(self):
         chosen = []
         for _ in range(self.no_replicas):
-            selected_nodes = random.sample(self.nodes, self.no_fragments)
+            selected_nodes = random.choices(self.nodes, k=self.no_fragments)
             chosen.append(selected_nodes)
         return chosen
 
