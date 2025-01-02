@@ -2,7 +2,6 @@ import random
 import threading
 import math
 import time
-import json
 
 from config import NO_FRAGMENTS, NODE_SELECTION_STRATEGY, NO_REPLICAS
 from node_selection import RandomSelection, MinCopySetsSelection, BuddySelection
@@ -114,7 +113,9 @@ class FileHandler:
             }
 
     def __upload_fragments(self, file_id, fragments, assigned_nodes):
-        threads = [] # Threads makes sense since we dont have to wait for one fragment to be uploaded to start the next one
+        threads = (
+            []
+        )  # Threads makes sense since we dont have to wait for one fragment to be uploaded to start the next one
         for replica_idx in range(NO_REPLICAS):
             for frag_idx, fragment in enumerate(fragments):
                 node = assigned_nodes[replica_idx][frag_idx]
@@ -187,7 +188,7 @@ class FileHandler:
             print(f"Killed storage node pod {pod['name']}")
             killed_nodes.append(pod)
         return killed_nodes
-    
+
     def set_replicas(self, replicas):
         global NO_REPLICAS
         NO_REPLICAS = replicas
@@ -200,7 +201,7 @@ class FileHandler:
             return {
                 "message": f"Failed to change number of replicas to {replicas}: {e}"
             }
-            
+
     def set_fragments(self, fragments):
         global NO_FRAGMENTS
         NO_FRAGMENTS = fragments
@@ -245,8 +246,12 @@ class FileHandler:
 
         total_files = len(file_metadata)
         print(f"Files lost: {files_lost}/{total_files}")
-        return {"files_lost": files_lost, "total_files": total_files, "node_count": len(self.storage_nodes)}
-    
+        return {
+            "files_lost": files_lost,
+            "total_files": total_files,
+            "node_count": len(self.storage_nodes),
+        }
+
     def reset_metadata(self):
         global file_metadata
         file_metadata = {}
