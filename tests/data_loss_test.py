@@ -68,5 +68,5 @@ def run_tests():
 if __name__ == "__main__":
     results = run_tests()
     print(results)
-    with open(f"tests/out/results_nodes_{N}.json", "w", encoding="utf-8") as f:
+    with open(f"tests/out/{N}_nodes_data_loss_test_results.json", "w", encoding="utf-8") as f:
         json.dump({str(k): v for k, v in results.items()}, f)

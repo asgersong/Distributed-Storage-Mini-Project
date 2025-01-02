@@ -1,21 +1,22 @@
-import requests
-import matplotlib.pyplot as plt
-import tqdm
+import os
 import json
 
-from shared_utils import generate_file, download_file, store_file, URL
-import os
+import matplotlib.pyplot as plt
+import tqdm
+
+from shared_utils import generate_file, download_file, store_file, change_replication_strategy, reset_metadata
 
 RANDOM_SELECTION = "random"
 MIN_COPY_SETS_SELECTION = "min_copy_sets"
 BUDDY_SELECTION = "buddy"
 
-# Example configuration parameters
-NO_NODES = 3  # 3, 6, 12, 24
-NO_REPLICAS = 3
-FILE_SIZES = [1e5, 1e6, 1e7, 1e8]  # 100 KB, 1 MB, 10 MB, (100 MB)
+# configuration parameters
+NO_NODES = 12  # 3, 6, 12, 24
+NO_REPLICAS = 3 # default
+FILE_SIZES = [1e5, 1e6, 1e7, 1e8]  # 100 KB, 1 MB, 10 MB, 100 MB
 NO_FILES = 100
 NODE_SELECTION_STRATEGIES = [BUDDY_SELECTION, MIN_COPY_SETS_SELECTION, RANDOM_SELECTION]
+# NODE_SELECTION_STRATEGIES = [RANDOM_SELECTION]
 
 
 def run_tests_for_file_size(file_size):
@@ -24,7 +25,7 @@ def run_tests_for_file_size(file_size):
     download_times = []
 
     file_bytes = generate_file(file_size)
-    for _ in tqdm.tqdm(range(NO_FILES), desc="Processing files"):
+    for _ in tqdm.tqdm(range(NO_FILES), desc="Processing files", leave=False, position=1):
         # Store file and measure time
         store_time, file_id = store_file(file_bytes)
         store_times.append(store_time)
@@ -58,14 +59,6 @@ def generate_histogram_and_summary(times, label, title, fig_number):
     return avg_time, median_time
 
 
-def change_replication_strategy(node_selection_strategy):
-    """Change the replication strategy to the given strategy"""
-    res = requests.post(
-        f"{URL}/change_replication_strategy", data=node_selection_strategy
-    )
-    print(f"Response: {res.text}")
-
-
 def perform_tests():
     """Perform tests for different file sizes and return results"""
     results = {}
@@ -74,9 +67,9 @@ def perform_tests():
         NODE_SELECTION_STRATEGIES, desc="Testing different node selection strategies"
     ):
         print(f"\n\nTesting for node selection strategy: {node_selection_strategy}")
-        change_replication_strategy(node_selection_strategy)
+        _ = change_replication_strategy(node_selection_strategy)
 
-        for file_size in tqdm.tqdm(FILE_SIZES, desc=f"Testing different file sizes"):
+        for file_size in tqdm.tqdm(FILE_SIZES, desc="Testing different file sizes"):
             print(f"\n\nTesting for file size: {file_size / 1000} KB")
             store_times, download_times = run_tests_for_file_size(file_size)
 
@@ -84,6 +77,9 @@ def perform_tests():
                 "store_times": store_times,
                 "download_times": download_times,
             }
+        
+        # Reset metadata
+        _ = reset_metadata()
 
     return results
 
