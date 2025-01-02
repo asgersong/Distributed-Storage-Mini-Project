@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 
 import matplotlib.pyplot as plt
@@ -11,12 +12,23 @@ MIN_COPY_SETS_SELECTION = "min_copy_sets"
 BUDDY_SELECTION = "buddy"
 
 # configuration parameters
-NO_NODES = 12  # 3, 6, 12, 24
+NO_NODES = 24  # 3, 6, 12, 24
 NO_REPLICAS = 3 # default
 FILE_SIZES = [1e5, 1e6, 1e7, 1e8]  # 100 KB, 1 MB, 10 MB, 100 MB
 NO_FILES = 100
-NODE_SELECTION_STRATEGIES = [BUDDY_SELECTION, MIN_COPY_SETS_SELECTION, RANDOM_SELECTION]
-# NODE_SELECTION_STRATEGIES = [RANDOM_SELECTION]
+NODE_SELECTION_STRATEGIES = [MIN_COPY_SETS_SELECTION, BUDDY_SELECTION, RANDOM_SELECTION]
+
+# get cli first argument
+if len(sys.argv) > 1:
+    selection_strategy = int(sys.argv[1])
+    if selection_strategy == 0:
+        NODE_SELECTION_STRATEGIES = [RANDOM_SELECTION]
+    elif selection_strategy == 1:
+        NODE_SELECTION_STRATEGIES = [MIN_COPY_SETS_SELECTION]
+    elif selection_strategy == 2:
+        NODE_SELECTION_STRATEGIES = [BUDDY_SELECTION]
+
+print(f"Testing: {NODE_SELECTION_STRATEGIES}")
 
 
 def run_tests_for_file_size(file_size):
@@ -25,7 +37,8 @@ def run_tests_for_file_size(file_size):
     download_times = []
 
     file_bytes = generate_file(file_size)
-    for _ in tqdm.tqdm(range(NO_FILES), desc="Processing files", leave=False, position=1):
+    # NO_FILES = 20 if file_size == 1e8 else 100
+    for _ in tqdm.tqdm(range(NO_FILES), desc="Processing files", leave=False):
         # Store file and measure time
         store_time, file_id = store_file(file_bytes)
         store_times.append(store_time)
@@ -78,8 +91,9 @@ def perform_tests():
                 "download_times": download_times,
             }
         
-        # Reset metadata
-        _ = reset_metadata()
+            # Reset metadata
+            r = reset_metadata()
+            print(r.text)
 
     return results
 
@@ -90,7 +104,7 @@ if __name__ == "__main__":
     # Convert tuple keys to strings
     results_str_keys = {str(k): v for k, v in results.items()}
     with open(
-        f"tests/out/{NO_NODES}_nodes_replication_allocation_test_results.json",
+        f"tests/out/{NO_NODES}_{NODE_SELECTION_STRATEGIES[0]}_nodes_replication_allocation_test_results.json",
         "w",
         encoding="utf-8",
     ) as f:
