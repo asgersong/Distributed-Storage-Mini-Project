@@ -6,7 +6,7 @@ URL = "http://localhost:4000"
 
 def send_store_request(file_bytes):
     """Send store request to the lead node"""
-    response = requests.post(f"{URL}/store", data=file_bytes, timeout=10)
+    response = requests.post(f"{URL}/store", data=file_bytes)
     return response.json()["file_id"]
 
 # Mock storage and download functions
