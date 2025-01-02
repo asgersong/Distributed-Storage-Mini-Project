@@ -48,15 +48,15 @@ def run_tests():
                     "http://localhost:4000/change_replication_strategy", data=strategy, timeout=10
                 )
                 # Store n files
-                file_ids = store_n_files(100, 10)  # 100 files of 10 bytes
+                _ = store_n_files(100, 10)  # 100 files of 10 bytes
                 # Kill s nodes
                 requests.post("http://localhost:4000/delete_pods", data=str(s), timeout=10)
                 # Quantify file loss
-                time.sleep(0.5)
+                time.sleep(2)
                 response = requests.get("http://localhost:4000/quantify_file_loss", timeout=10)
                 response = response.json()
                 if (strategy, N) not in results:
-                    results[(strategy, N)] = []    
+                    results[(strategy, N)] = []
                 results[(strategy, N)].append({s: response['files_lost']})
 
             except requests.exceptions.RequestException as e:
