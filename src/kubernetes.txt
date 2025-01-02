@@ -1,6 +1,11 @@
 ##############################
 START minikube
-minikube start
+    minikube start
+It is also possible to start with a particular amount of resources, e.g:
+    minikube start --memory=4096 --cpus=4
+
+
+
 
 ####################
 Make sure to use minikube docker env
@@ -73,3 +78,5 @@ For the lead node substitute <node-type> with "lead-node" and for the storage no
 Then push the images with 
 
     docker push therealnestor/ds:<node-type>
+
+

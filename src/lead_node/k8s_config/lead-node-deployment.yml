@@ -21,6 +21,12 @@ spec:
         #     value: "storage-nodes:5000" # this is the service name and port of the storage nodes
         ports:
           - containerPort: 4000 # lead node listens on this port
-
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "500m"
+          limits:
+            memory: "6Gi"
+            cpu: "1"
 
       

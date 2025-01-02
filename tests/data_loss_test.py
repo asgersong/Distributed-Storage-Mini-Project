@@ -10,10 +10,10 @@ MIN_COPY_SETS_SELECTION = "min_copy_sets"
 BUDDY_SELECTION = "buddy"
 
 # N is determined by the deployment and is changed manually (12, 24, 36)
-N = 36  # currently testing
+N = 24  # currently testing
 K = 3  # default value
 STRATEGIES = [MIN_COPY_SETS_SELECTION, RANDOM_SELECTION, BUDDY_SELECTION]
-S = [2, 3, 4, 6, 8, 10]
+S = [2, 3, 4, 6, 8, 10] # number of nodes to kill
 
 
 def store_n_files(n, file_size):
