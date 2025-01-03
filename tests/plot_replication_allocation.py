@@ -49,7 +49,7 @@ def plot_histograms(data, node_counts, strategies, operation, file_sizes):
                     )
 
                     legends.append(
-                        f"{nodes} Nodes: Median {median:.2f} ms, Avg {avg:.2f} ms"
+                        f"$N=${nodes}: Median {median:.2f} ms, Avg {avg:.2f} ms"
                     )
 
             ax.set_title(f"{strategy.capitalize()}, File Size {readable_sizes[file_size]}", fontsize=10)
@@ -59,7 +59,7 @@ def plot_histograms(data, node_counts, strategies, operation, file_sizes):
             if j == 0:
                 ax.set_ylabel("Frequency", fontsize=9)
 
-            ax.legend(legends, loc="upper right", fontsize=8)
+            ax.legend(legends, loc="upper right", fontsize=9)
 
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
     plt.show()
