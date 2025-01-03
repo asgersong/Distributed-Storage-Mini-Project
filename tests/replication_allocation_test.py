@@ -12,7 +12,7 @@ MIN_COPY_SETS_SELECTION = "min_copy_sets"
 BUDDY_SELECTION = "buddy"
 
 # configuration parameters
-NO_NODES = 24  # 3, 6, 12, 24
+NO_NODES = 3  # 3, 6, 12, 24
 NO_REPLICAS = 3 # default
 FILE_SIZES = [1e5, 1e6, 1e7, 1e8]  # 100 KB, 1 MB, 10 MB, 100 MB
 NO_FILES = 100
