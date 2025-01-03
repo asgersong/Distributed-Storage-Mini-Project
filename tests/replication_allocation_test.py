@@ -104,7 +104,7 @@ if __name__ == "__main__":
     # Convert tuple keys to strings
     results_str_keys = {str(k): v for k, v in results.items()}
     with open(
-        f"tests/out/{NO_NODES}_{NODE_SELECTION_STRATEGIES[0]}_nodes_replication_allocation_test_results.json",
+        f"tests/out/{NO_NODES}_nodes_replication_allocation_test_results.json",
         "w",
         encoding="utf-8",
     ) as f:
