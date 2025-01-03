@@ -30,7 +30,7 @@ def plot_histograms(data, node_counts, strategies, operation, file_sizes):
 
     for i, file_size in enumerate(file_sizes):
         for j, strategy in enumerate(strategies):
-            ax = axes[i, j]
+            ax = axes[i, j] if num_file_sizes > 1 else axes[j]
             legends = []
 
             for nodes in node_counts:
@@ -67,13 +67,15 @@ def plot_histograms(data, node_counts, strategies, operation, file_sizes):
 
 if __name__ == "__main__":
     SUFFIX = "nodes_replication_allocation_test_results.json"
-    OUT_DIR = "tests/out/"
+    OUT_DIR = "tests/out2/"
 
     # Parameters
     node_counts = ["3", "6", "12", "24"]
     strategies = ["random", "min_copy_sets", "buddy"]
     operations = ["store_times", "download_times"]
-    file_sizes = [100000.0, 1000000.0, 10000000.0, 100000000.0]
+    # file_sizes = [100000.0, 1000000.0, 10000000.0, 100000000.0]
+    # file_sizes = [100000.0, 1000000.0, 10000000.0]
+    file_sizes = [100000000.0]
 
     # Load files
     files = [f for f in os.listdir(OUT_DIR) if f.endswith(SUFFIX)]
