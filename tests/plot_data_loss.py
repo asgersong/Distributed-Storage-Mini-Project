@@ -3,9 +3,10 @@ import json
 import ast
 
 N = [12, 24, 36]
+TOTAL_FILES = 100
 
 fig, ax = plt.subplots(1, len(N), figsize=(15, 5), sharex=True, sharey=True)
-fig.suptitle("Files lost per strategy", fontsize=16)
+fig.suptitle("Files lost across strategies and number of nodes", fontsize=16)
 
 for i, n in enumerate(N):
     with open(f'tests/out/results_nodes_{n}.json') as f:
@@ -14,9 +15,13 @@ for i, n in enumerate(N):
         for strategy, res in data.items():
             x = [list(d.keys())[0] for d in res]
             y = [list(d.values())[0] for d in res]
+
+            # divide by total files to get percentage
+            y = [y_i / TOTAL_FILES for y_i in y]
+
             ax[i].plot(x, y, label=ast.literal_eval(strategy)[0], marker='o')
             ax[i].set_xlabel('S (Nodes Killed)', fontsize=9)
-            ax[i].set_ylabel('Files lost', fontsize=9)
+            ax[i].set_ylabel('Fraction of Files Lost', fontsize=9)
             ax[i].legend(loc='upper left', fontsize=9)
             ax[i].grid()
             print(strategy, x, y)
