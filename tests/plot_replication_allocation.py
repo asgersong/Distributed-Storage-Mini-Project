@@ -49,13 +49,13 @@ def plot_histograms(data, node_counts, strategies, operation, file_sizes):
                     )
 
                     legends.append(
-                        f"$N=${nodes}: Median {median:.2f} ms, Avg {avg:.2f} ms"
+                        f"$N=${nodes}: Median {median:.2f} s, Avg {avg:.2f} s"
                     )
 
             ax.set_title(f"{strategy.capitalize()}, File Size {readable_sizes[file_size]}", fontsize=10)
             ax.grid(axis="y", linestyle="--", alpha=0.7)
             if i == num_file_sizes - 1:
-                ax.set_xlabel("Time (ms)", fontsize=9)
+                ax.set_xlabel("Time (s)", fontsize=9)
             if j == 0:
                 ax.set_ylabel("Frequency", fontsize=9)
 
@@ -74,8 +74,8 @@ if __name__ == "__main__":
     strategies = ["random", "min_copy_sets", "buddy"]
     operations = ["store_times", "download_times"]
     # file_sizes = [100000.0, 1000000.0, 10000000.0, 100000000.0]
-    # file_sizes = [100000.0, 1000000.0, 10000000.0]
-    file_sizes = [100000000.0]
+    file_sizes = [100000.0, 1000000.0, 10000000.0]
+    # file_sizes = [100000000.0]
 
     # Load files
     files = [f for f in os.listdir(OUT_DIR) if f.endswith(SUFFIX)]
