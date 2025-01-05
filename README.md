@@ -14,7 +14,7 @@ The system includes two main types of nodes:
 The system communicates through a REST API, facilitating file upload, download, and system monitoring.
 
 ## Results
-For a detailed analysis of the system’s performance, see the [report](report.pdf). The report includes:
+For a detailed analysis of the system’s performance, see the [report](Distributed_Storage_Mini_Project.pdf). The report includes:
 * Metrics on file storage and retrieval times.
 * Robustness evaluation against node failures.
 * Comparative analysis of replication strategies.
